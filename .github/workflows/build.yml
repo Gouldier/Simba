@@ -1,4 +1,4 @@
-﻿name: Build
+name: build
 
 on: 
   push:
@@ -7,8 +7,7 @@ on:
   pull_request:
     branches:
       - '**'
-  workflow_dispatch:
-      
+
 jobs:
   build:
     name: ${{ matrix.config.name }}
@@ -19,68 +18,101 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:            
-          - name: Windows 64
+        config:         
+          # note: names must equal Simba build modes   
+          - name: Win64 
             runs-on: windows-latest
-            build-mode: SIMBA_WIN64
             binary: Simba-Win64.exe
             test: Simba-Win64.exe
-            
-          - name: Windows 32  
+          
+          - name: Win64 DebugInfo
             runs-on: windows-latest
-            build-mode: SIMBA_WIN32
+            binary: Simba-Win64-Debug.exe
+            test: Simba-Win64-Debug.exe
+
+          - name: Win32
+            runs-on: windows-latest
             binary: Simba-Win32.exe
             test: Simba-Win32.exe
 
-          - name: Linux 64
-            runs-on: ubuntu-latest
-            build-mode: SIMBA_LINUX64
+          - name: Linux64
+            runs-on: ubuntu-22.04
             binary: Simba-Linux64
             test: Simba-Linux64
-          
-          - name: AArch64  
-            runs-on: ubuntu-latest
-            build-mode: SIMBA_AARCH64
-            binary: Simba-AArch64
             
-          - name: MacOS 64
-            runs-on: macos-latest
-            build-mode: SIMBA_DARWIN64
-            binary: Simba-Darwin64.zip
-            test: Simba-Darwin64
+          - name: Mac
+            runs-on: macos-13
+            binary: Simba-Mac.dmg
+            test: Simba
+
+          - name: Mac Arm
+            runs-on: macos-13
+            binary: Simba-Mac-Arm.dmg
+            #test: Simba MatchTemplateMask test fails, investigate later
             
     steps:
       - uses: actions/checkout@v4.2.2
         with: 
           submodules: true
-      
-      - name: Install Lazarus
-        uses: ollydev/setup-lazarus-fpcup@v3.3
+
+      - name: Install Lazarus (Mac)
+        if: startsWith(matrix.config.name, 'Mac') == true
+        uses: ollydev/setup-lazarus@v3.3
         with:
-          laz: lazarus_2_2_4
-          fpc: release_3_2_2
-    
+          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%203.6/Lazarus-3.6-macosx-x86_64.pkg
+          fpc-url: |
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%203.6/fpc-3.2.2.intelarm64-macosx.dmg
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%203.6/fpc-src-3.2.2-20210709-macosx.dmg
+
+      - name: Install Lazarus (Linux)
+        if: startsWith(matrix.config.name, 'Linux') == true
+        uses: ollydev/setup-lazarus@v3.3
+        with:
+          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/lazarus-project_3.6.0-0_amd64.deb
+          fpc-url: |
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/fpc-laz_3.2.2-210709_amd64.deb
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/fpc-src_3.2.2-210709_amd64.deb
+
+      - name: Install Lazarus (Win32)
+        if: startsWith(matrix.config.name, 'Win32') == true
+        uses: ollydev/setup-lazarus@v3.3
+        with:
+          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2032%20bits/Lazarus%203.6/lazarus-3.6-fpc-3.2.2-win32.exe
+
+      - name: Install Lazarus (Win64)
+        if: startsWith(matrix.config.name, 'Win64') == true
+        uses: ollydev/setup-lazarus@v3.3
+        with:
+          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2064%20bits/Lazarus%203.6/lazarus-3.6-fpc-3.2.2-win64.exe
+
       - name: Build Simba
         run: |
           export GITHUB_SHORT_SHA=$(git rev-parse --short HEAD)
+          lazbuild --build-mode="${{ matrix.config.name }}" "Source/Simba.lpi"
+
+      - name: Create Mac Image
+        if: startsWith(matrix.config.name, 'Mac') == true
+        run: |
+          brew install create-dmg
           
-          lazbuild --build-mode=${{ matrix.config.build-mode }} "Source/Simba/Simba.lpi"
+          for i in {1..10}; 
+          do 
+            create-dmg --window-size 500 330 --icon-size 48 --icon "Simba.app" 130 135 --app-drop-link 380 135 --background "Source/macosbundle/installer.tff" "${{ matrix.config.binary }}" "Simba.app" && break || sleep 15; 
+          done
 
       - name: Test Simba
         if: matrix.config.test != ''
         run: |
-          if [ "${{ matrix.config.runs-on }}" = "ubuntu-latest" ]; then
+          if [[ "${{ matrix.config.runs-on }}" == ubuntu* ]]; then
               export DISPLAY=:1
               Xvfb :1 & sleep 2
           fi
-          if [ "${{ matrix.config.runs-on }}" != "windows-latest" ]; then
-              chmod +x ${{ matrix.config.test }}
-          fi
           
-          ./${{ matrix.config.test }} --silent --run "Tests/simba"
-
-      - name: Upload Binary 
-        uses: actions/upload-artifact@4.6.2
+          chmod +x ${{ matrix.config.test }}
+          ./${{ matrix.config.test }} --run "Tests/RunTests/tester.simba"
+          
+      - name: Upload Simba Binary 
+        uses: actions/upload-artifact@v4.6.1
         with:
-          name: ${{ matrix.config.binary }}
+          name: ${{ matrix.config.name }}
           path: ${{ matrix.config.binary }}
