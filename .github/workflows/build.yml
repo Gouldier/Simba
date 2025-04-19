@@ -36,11 +36,6 @@ jobs:
             build-mode: SIMBA_LINUX64
             binary: Simba-Linux64
             test: Simba-Linux64
-          
-          - name: AArch64  
-            runs-on: ubuntu-latest
-            build-mode: SIMBA_AARCH64
-            binary: Simba-AArch64
             
           - name: MacOS 64
             runs-on: macos-latest
@@ -63,7 +58,7 @@ jobs:
             https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%202.2.0/fpc-src-3.2.2-20210709-macosx.dmg
 
       - name: Install Lazarus (Linux)
-        if: startsWith(matrix.config.name, 'Linux') == true || startsWith(matrix.config.name, 'AArch64') == true
+        if: startsWith(matrix.config.name, 'Linux') == true
         uses: ollydev/setup-lazarus@v3.3
         with:
           laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%202.2.0/lazarus-project_2.2.0-0_amd64.deb
