@@ -18,37 +18,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:         
-          # note: names must equal Simba build modes   
-          - name: Win64 
+        config:            
+          - name: Windows 64
             runs-on: windows-latest
+            build-mode: SIMBA_WIN64
             binary: Simba-Win64.exe
             test: Simba-Win64.exe
-          
-          - name: Win64 DebugInfo
+            
+          - name: Windows 32  
             runs-on: windows-latest
-            binary: Simba-Win64-Debug.exe
-            test: Simba-Win64-Debug.exe
-
-          - name: Win32
-            runs-on: windows-latest
+            build-mode: SIMBA_WIN32
             binary: Simba-Win32.exe
             test: Simba-Win32.exe
 
-          - name: Linux64
-            runs-on: ubuntu-22.04
+          - name: Linux 64
+            runs-on: ubuntu-latest
+            build-mode: SIMBA_LINUX64
             binary: Simba-Linux64
             test: Simba-Linux64
+          
+          - name: AArch64  
+            runs-on: ubuntu-latest
+            build-mode: SIMBA_AARCH64
+            binary: Simba-AArch64
             
-          - name: Mac
-            runs-on: macos-13
-            binary: Simba-Mac.dmg
-            test: Simba
-
-          - name: Mac Arm
-            runs-on: macos-13
-            binary: Simba-Mac-Arm.dmg
-            #test: Simba MatchTemplateMask test fails, investigate later
+          - name: MacOS 64
+            runs-on: macos-latest
+            build-mode: SIMBA_DARWIN64
+            binary: Simba-Darwin64.zip
+            test: Simba-Darwin64
             
     steps:
       - uses: actions/checkout@v4.2.2
@@ -65,7 +63,7 @@ jobs:
             https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%203.6/fpc-src-3.2.2-20210709-macosx.dmg
 
       - name: Install Lazarus (Linux)
-        if: startsWith(matrix.config.name, 'Linux') == true
+        if: startsWith(matrix.config.name, 'Linux') == true || startsWith(matrix.config.name, 'AArch64') == true
         uses: ollydev/setup-lazarus@v3.3
         with:
           laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/lazarus-project_3.6.0-0_amd64.deb
@@ -74,13 +72,13 @@ jobs:
             https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/fpc-src_3.2.2-210709_amd64.deb
 
       - name: Install Lazarus (Win32)
-        if: startsWith(matrix.config.name, 'Win32') == true
+        if: startsWith(matrix.config.name, 'Windows 32') == true
         uses: ollydev/setup-lazarus@v3.3
         with:
           laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2032%20bits/Lazarus%203.6/lazarus-3.6-fpc-3.2.2-win32.exe
 
       - name: Install Lazarus (Win64)
-        if: startsWith(matrix.config.name, 'Win64') == true
+        if: startsWith(matrix.config.name, 'Windows 64') == true
         uses: ollydev/setup-lazarus@v3.3
         with:
           laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2064%20bits/Lazarus%203.6/lazarus-3.6-fpc-3.2.2-win64.exe
