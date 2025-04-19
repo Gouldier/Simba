@@ -86,7 +86,7 @@ jobs:
       - name: Build Simba
         run: |
           export GITHUB_SHORT_SHA=$(git rev-parse --short HEAD)
-          lazbuild --build-mode="${{ matrix.config.name }}" "Source/Simba/Simba.lpi"
+          lazbuild --build-mode=${{ matrix.config.build-mode }} "Source/Simba/Simba.lpi"
 
       - name: Create Mac Image
         if: startsWith(matrix.config.name, 'Mac') == true
