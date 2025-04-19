@@ -57,25 +57,25 @@ jobs:
         if: startsWith(matrix.config.name, 'Mac') == true
         uses: ollydev/setup-lazarus@v3.3
         with:
-          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%203.6/Lazarus-3.6-macosx-x86_64.pkg
+          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%202.2.0/Lazarus-2.2.0-0-x86_64-macosx.pkg
           fpc-url: |
-            https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%203.6/fpc-3.2.2.intelarm64-macosx.dmg
-            https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%203.6/fpc-src-3.2.2-20210709-macosx.dmg
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%202.2.0/fpc-3.2.2.intelarm64-macosx.dmg
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%202.2.0/fpc-src-3.2.2-20210709-macosx.dmg
 
       - name: Install Lazarus (Linux)
         if: startsWith(matrix.config.name, 'Linux') == true || startsWith(matrix.config.name, 'AArch64') == true
         uses: ollydev/setup-lazarus@v3.3
         with:
-          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/lazarus-project_3.6.0-0_amd64.deb
+          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%202.2.0/lazarus-project_2.2.0-0_amd64.deb
           fpc-url: |
-            https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/fpc-laz_3.2.2-210709_amd64.deb
-            https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%203.6/fpc-src_3.2.2-210709_amd64.deb
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%202.2.0/fpc-laz_3.2.2-210709_amd64.deb
+            https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%202.2.0/fpc-src_3.2.2-210709_amd64.deb
 
       - name: Install Lazarus (Win32)
         if: startsWith(matrix.config.name, 'Windows 32') == true
         uses: ollydev/setup-lazarus@v3.3
         with:
-          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2032%20bits/Lazarus%203.6/lazarus-3.6-fpc-3.2.2-win32.exe
+          laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2032%20bits/Lazarus%202.2.0/lazarus-2.2.0-fpc-3.2.2-win32.exe
 
       - name: Install Lazarus (Win64)
         if: startsWith(matrix.config.name, 'Windows 64') == true
@@ -88,29 +88,21 @@ jobs:
           export GITHUB_SHORT_SHA=$(git rev-parse --short HEAD)
           lazbuild --build-mode=${{ matrix.config.build-mode }} "Source/Simba/Simba.lpi"
 
-      - name: Create Mac Image
-        if: startsWith(matrix.config.name, 'Mac') == true
-        run: |
-          brew install create-dmg
-          
-          for i in {1..10}; 
-          do 
-            create-dmg --window-size 500 330 --icon-size 48 --icon "Simba.app" 130 135 --app-drop-link 380 135 --background "Source/macosbundle/installer.tff" "${{ matrix.config.binary }}" "Simba.app" && break || sleep 15; 
-          done
-
       - name: Test Simba
         if: matrix.config.test != ''
         run: |
-          if [[ "${{ matrix.config.runs-on }}" == ubuntu* ]]; then
+          if [ "${{ matrix.config.runs-on }}" = "ubuntu-latest" ]; then
               export DISPLAY=:1
               Xvfb :1 & sleep 2
           fi
+          if [ "${{ matrix.config.runs-on }}" != "windows-latest" ]; then
+              chmod +x ${{ matrix.config.test }}
+          fi
           
-          chmod +x ${{ matrix.config.test }}
-          ./${{ matrix.config.test }} --run "Tests/RunTests/tester.simba"
-          
-      - name: Upload Simba Binary 
+          ./${{ matrix.config.test }} --silent --run "Tests/simba"
+
+      - name: Upload Binary 
         uses: actions/upload-artifact@v4.6.1
         with:
-          name: ${{ matrix.config.name }}
+          name: ${{ matrix.config.binary }}
           path: ${{ matrix.config.binary }}
