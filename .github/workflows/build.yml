@@ -81,7 +81,7 @@ jobs:
           ./${{ matrix.config.test }} --silent --run "Tests/simba"
 
       - name: Upload Binary 
-        uses: actions/upload-artifact@v2.3.1
+        uses: actions/upload-artifact@4.6.2
         with:
           name: ${{ matrix.config.binary }}
           path: ${{ matrix.config.binary }}
